@@ -1516,8 +1516,632 @@ class TallyMcpServer {
       }
     );
 
-    // For now, I'll add just the essential tools to test the HTTP functionality
-    // The complete tool setup can be added later
+    // All 12 tools now implemented for HTTP feature parity
+
+    server.tool(
+      'get_organization',
+      'Get detailed information about a specific organization by ID or slug',
+      {
+        organizationId: z
+          .string()
+          .optional()
+          .describe('Organization ID (use either this or organizationSlug)'),
+        organizationSlug: z
+          .string()
+          .optional()
+          .describe('Organization slug (use either this or organizationId)'),
+      },
+      async ({ organizationId, organizationSlug }): Promise<CallToolResult> => {
+        try {
+          const result = await getOrganization(graphqlClient, {
+            organizationId,
+            organizationSlug,
+          });
+
+          if (!result) {
+            throw new Error('Organization not found');
+          }
+
+          const response = {
+            id: result.id,
+            name: result.name,
+            slug: result.slug,
+            chainIds: [result.chainId],
+            memberCount: result.memberCount,
+            proposalCount: result.proposalStats.total,
+            hasActiveProposals: result.proposalStats.active > 0,
+            description: result.description,
+            website: result.website,
+            twitter: result.twitter,
+            github: result.github,
+            timelocks: result.timelocks,
+            safes: result.safes,
+            conversionReminder: "⚠️ IMPORTANT: When analyzing proposals or votes for this organization, all vote counts and token amounts are in raw token units (Ethereum-style). Use tokenInfo.decimals to convert: human-readable amount = raw value ÷ 10^decimals.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_organizations_with_active_proposals',
+      'Get organizations that have active proposals with filtering options',
+      {
+        minActiveProposals: z
+          .number()
+          .optional()
+          .describe('Minimum number of active proposals (default: 1)'),
+        chainId: z.string().optional().describe('Filter by chain ID'),
+        page: z.number().optional().describe('Page number (default: 1)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of organizations per page (max: 100, default: 20)'),
+      },
+      async ({
+        minActiveProposals,
+        chainId,
+        page,
+        pageSize,
+      }): Promise<CallToolResult> => {
+        try {
+          const result = await getOrganizationsWithActiveProposals(
+            graphqlClient,
+            {
+              page,
+              pageSize,
+              minActiveProposals,
+              chainId,
+            }
+          );
+
+          const response = {
+            items: result.organizations.map((org) => ({
+              ...org,
+              chainIds: [org.chainId],
+              proposalCount: org.proposalStats.total,
+              hasActiveProposals: org.proposalStats.active > 0,
+            })),
+            totalCount: result.pagination.totalCount,
+            pageInfo: {
+              hasNextPage: result.pagination.hasNextPage,
+              hasPreviousPage: result.pagination.hasPreviousPage,
+              startCursor: undefined,
+              endCursor: undefined,
+            },
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'list_proposals',
+      'List proposals for a specific organization with pagination, filtering, and sorting',
+      {
+        organizationId: z.string().describe('Organization ID (required)'),
+        page: z.number().optional().describe('Page number (default: 1)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of proposals per page (max: 100, default: 20)'),
+        governorId: z
+          .string()
+          .optional()
+          .describe('Filter by governor contract ID'),
+        proposer: z.string().optional().describe('Filter by proposer address'),
+        sortOrder: z
+          .string()
+          .optional()
+          .describe('Sort order: asc or desc (default: desc)'),
+      },
+      async (args): Promise<CallToolResult> => {
+        try {
+          const result = await listProposals(graphqlClient, {
+            organizationId: args.organizationId,
+            page: args.page,
+            pageSize: args.pageSize,
+            governorId: args.governorId,
+            proposer: args.proposer,
+            isDraft: false,
+            includeArchived: false,
+            sortOrder: args.sortOrder as any,
+          });
+
+          const response = {
+            items: result.proposals.map((proposal) => ({
+              id: proposal.id,
+              onchainId: proposal.id,
+              status: proposal.status,
+              metadata: {
+                title: proposal.title,
+                description: proposal.description,
+              },
+              organization: proposal.organization || {
+                name: 'Unknown',
+                slug: 'unknown',
+              },
+              proposer: proposal.proposer,
+              votingStats: proposal.votingStats,
+              startTime: proposal.startTime,
+              endTime: proposal.endTime,
+            })),
+            totalCount: result.pagination.totalCount,
+            pageInfo: {
+              hasNextPage: result.pagination.hasNextPage,
+              hasPreviousPage: result.pagination.hasPreviousPage,
+              startCursor: undefined,
+              endCursor: undefined,
+            },
+            conversionReminder: "⚠️ IMPORTANT: All vote counts in votingStats (yesVotes, noVotes, abstainVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_proposal',
+      'Get detailed information about a specific proposal',
+      {
+        organizationId: z
+          .string()
+          .optional()
+          .describe('Organization ID (use either this or organizationSlug)'),
+        organizationSlug: z
+          .string()
+          .optional()
+          .describe('Organization slug (use either this or organizationId)'),
+        proposalId: z.string().describe('Proposal ID (required)'),
+      },
+      async ({
+        organizationId,
+        organizationSlug,
+        proposalId,
+      }): Promise<CallToolResult> => {
+        try {
+          const result = await getProposal(graphqlClient, {
+            organizationId,
+            organizationSlug,
+            proposalId,
+          });
+
+          if (!result) {
+            throw new Error('Proposal not found');
+          }
+
+          const response = {
+            id: result.id,
+            onchainId: result.id,
+            status: result.status,
+            metadata: {
+              title: result.title,
+              description: result.description,
+            },
+            organization: {
+              name: result.organization?.name || 'Unknown',
+              slug: result.organization?.slug || 'unknown',
+            },
+            proposer: result.proposer,
+            votingStats: result.votingStats,
+            startTime: result.startTime,
+            endTime: result.endTime,
+            executionDetails: result.executionDetails,
+            actions: result.actions,
+            executableCalls: result.executableCalls,
+            timelockOperations: result.timelockOperations,
+            timelockSummary: result.timelockSummary,
+            tokenInfo: result.tokenInfo,
+            conversionReminder: "⚠️ IMPORTANT: All vote counts (yesVotes, noVotes, abstainVotes, totalVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_active_proposals',
+      'Get votable proposals (active or extended status) for a specific organization OR from multiple organizations (limited). Returns proposals where users can currently vote. IMPORTANT: The Tally API does NOT support efficient cross-organizational queries without organizationId. When organizationId is NOT provided, this tool must query organizations individually, which may return incomplete results or empty responses. For reliable results, ALWAYS specify organizationId when possible.',
+      {
+        page: z.number().optional().describe('Page number (default: 1)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of proposals per page (max: 100, default: 20)'),
+        chainId: z.string().optional().describe('Filter by chain ID'),
+        organizationId: z
+          .string()
+          .optional()
+          .describe('Filter by organization ID - STRONGLY RECOMMENDED for reliable results. Without this, the query may return empty or incomplete results due to Tally API limitations.'),
+      },
+      async (args): Promise<CallToolResult> => {
+        try {
+          const result = await getActiveProposals(graphqlClient, {
+            page: args.page,
+            pageSize: args.pageSize,
+            chainId: args.chainId,
+            organizationId: args.organizationId,
+          });
+
+          const response = {
+            items: result.proposals,
+            totalCount: result.pagination.totalCount,
+            pageInfo: {
+              hasNextPage: result.pagination.hasNextPage,
+              hasPreviousPage: result.pagination.hasPreviousPage,
+              startCursor: undefined,
+              endCursor: undefined,
+            },
+            conversionReminder: "⚠️ IMPORTANT: All vote counts in proposal votingStats are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_user_profile',
+      'Get comprehensive user profile including user details and DAO participations',
+      {
+        address: z.string().describe('Ethereum address of the user (required)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of DAO participations per page (max: 100, default: 20)'),
+      },
+      async ({ address, pageSize }): Promise<CallToolResult> => {
+        try {
+          const result = await getUserProfile(graphqlClient, { address, pageSize });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_delegate_statement',
+      'Get delegate statement for a specific user and organization',
+      {
+        address: z.string().describe('Ethereum address of the delegate (required)'),
+        organizationId: z.string().describe('Organization ID (required)'),
+      },
+      async ({ address, organizationId }): Promise<CallToolResult> => {
+        try {
+          const result = await getDelegateStatement(graphqlClient, { address, organizationId });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_dao_participants',
+      'Get participants of a specific DAO with pagination, filtering, and sorting',
+      {
+        organizationId: z
+          .string()
+          .describe('Organization ID (required)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of participants per page (max: 100, default: 20)'),
+      },
+      async ({
+        organizationId,
+        pageSize,
+      }): Promise<CallToolResult> => {
+        try {
+          const result = await getDAOParticipants(graphqlClient, {
+            organizationId,
+            pageSize,
+          });
+
+          const response = {
+            items: result?.items || [],
+            totalCount: result?.totalCount || 0,
+            pageInfo: {
+              hasNextPage: result?.pageInfo.hasNextPage || false,
+              hasPreviousPage: result?.pageInfo.hasPreviousPage || false,
+              startCursor: result?.pageInfo.startCursor,
+              endCursor: result?.pageInfo.endCursor,
+            },
+            conversionReminder: result?.conversionReminder || "⚠️ IMPORTANT: All votesCount values are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals using the tokenInfo.decimals field, or use 18 decimals as default.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_delegates',
+      'Get enhanced delegate information for a specific organization including voting power, account details, statements, and organization info',
+      {
+        organizationId: z
+          .string()
+          .describe('Organization ID (required)'),
+        pageSize: z
+          .number()
+          .optional()
+          .describe('Number of delegates per page (max: 100, default: 20)'),
+        sortBy: z
+          .string()
+          .optional()
+          .describe(
+            'Sort field: id, votes, delegators, isPrioritized (default: votes)'
+          ),
+        sortOrder: z
+          .string()
+          .optional()
+          .describe('Sort order: asc or desc (default: desc)'),
+      },
+      async ({
+        organizationId,
+        pageSize,
+        sortBy,
+        sortOrder,
+      }): Promise<CallToolResult> => {
+        try {
+          const result = await getDelegates(graphqlClient, {
+            organizationId,
+            pageSize,
+            sortBy,
+            sortOrder,
+          });
+
+          const response = {
+            items: result?.items || [],
+            totalCount: result?.totalCount || 0,
+            pageInfo: {
+              hasNextPage: result?.pageInfo.hasNextPage || false,
+              hasPreviousPage: result?.pageInfo.hasPreviousPage || false,
+              startCursor: result?.pageInfo.startCursor,
+              endCursor: result?.pageInfo.endCursor,
+            },
+            conversionReminder: "⚠️ IMPORTANT: All vote counts and voting power values (votesCount, delegated amounts) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
+          };
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('GraphQL errors') ||
+              error.message.includes('rate limit') ||
+              error.message.includes('Invalid'))
+          ) {
+            throw error;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
 
     // Advanced Query Tool
     server.tool(
