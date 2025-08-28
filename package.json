@@ -1,6 +1,6 @@
 {
   "name": "mcp-tally-api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Model Context Protocol server for Tally blockchain governance API - Access DAOs, proposals, and voting data across 15+ networks",
   "module": "index.ts",
   "main": "dist/index.js",
