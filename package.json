@@ -1,99 +1,21 @@
 {
   "name": "mcp-tally-api",
   "version": "1.2.0",
-  "description": "Model Context Protocol server for Tally blockchain governance API - Access DAOs, proposals, and voting data across 15+ networks",
-  "module": "index.ts",
-  "main": "dist/index.js",
-  "bin": {
-    "mcp-tally-api": "dist/index.js"
-  },
+  "description": "Model Context Protocol server for Tally blockchain governance API",
   "type": "module",
+  "main": "api/index.js",
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "dev:sse": "TRANSPORT_MODE=sse bun run --watch src/index.ts",
-    "dev:http": "TRANSPORT_MODE=http bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target node",
-    "start": "bun run dist/index.js",
-    "start:sse": "TRANSPORT_MODE=sse bun run dist/index.js",
-    "start:http": "TRANSPORT_MODE=http bun run dist/index.js",
-    "test": "vitest",
-    "test:live": "TALLY_API_KEY=$TALLY_API_KEY vitest run tests/live-server.test.ts --testTimeout=30000",
-    "test:all": "vitest",
-    "test:watch": "vitest --watch tests/server.test.ts tests/integration.test.ts",
-    "test:coverage": "vitest --coverage tests/server.test.ts tests/integration.test.ts",
-    "lint": "prettier --check .",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write .",
-    "prepublishOnly": "bun run build",
-    "deploy:build": "bun run build && npm test",
-    "deploy:start": "TRANSPORT_MODE=http node dist/index.js"
+    "build": "echo 'No build needed - using pre-bundled JavaScript'"
   },
-  "files": [
-    "dist/",
-    "README.md",
-    "LICENSE",
-    "package.json"
-  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.0",
-    "express": "^4.18.2",
     "graphql": "^16.11.0",
     "graphql-request": "^7.2.0",
-    "js-yaml": "^4.1.0",
     "zod": "^3.25.29"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/express": "^4.17.21",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "@vitest/coverage-v8": "^3.1.4",
-    "eslint": "^8.54.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.1",
-    "prettier": "^3.1.0",
-    "typescript": "^5.3.0",
-    "vitest": "^3.1.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "tally",
-    "dao",
-    "governance",
-    "blockchain",
-    "ethereum",
-    "defi",
-    "voting",
-    "proposals",
-    "delegates",
-    "web3",
-    "llm",
-    "ai",
-    "cursor"
-  ],
-  "author": {
-    "name": "Dennison Bertram",
-    "email": "dennison@tally.xyz"
-  },
-  "license": "MIT",
-  "homepage": "https://github.com/withtally/mcp-tally-api#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/withtally/mcp-tally-api.git"
-  },
-  "bugs": {
-    "url": "https://github.com/withtally/mcp-tally-api/issues"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "publishConfig": {
-    "access": "public"
-  }
+  "keywords": ["mcp", "blockchain", "governance", "dao", "tally"],
+  "license": "MIT"
 }

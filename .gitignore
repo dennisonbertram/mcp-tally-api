@@ -203,3 +203,4 @@ test-simple.sh
 scripts/test-*.sh
 scripts/run-*.sh
 scripts/prd.txt 
+.vercel
