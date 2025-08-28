@@ -8,8 +8,10 @@ import {
   CallToolResult,
   GetPromptResult,
   ReadResourceResult,
+  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 
 // Import our tool implementations
 import { AuthManager } from './auth.js';
@@ -36,6 +38,7 @@ import { getProposalOverview } from './resources/proposal-overview.js';
 import { getUserOverview } from './resources/user-overview.js';
 import { getTrendingProposalsOverview } from './resources/trending-proposals.js';
 import { governancePrompts } from './prompts/governance-prompts.js';
+import { GovernanceMonitor } from './governance-monitor.js';
 
 /**
  * MCP Tally API Server
@@ -50,6 +53,7 @@ const TALLY_API_URL =
 const TALLY_API_KEY = process.env.TALLY_API_KEY;
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const TRANSPORT_MODE = process.env.TRANSPORT_MODE || 'stdio'; // 'stdio', 'sse', or 'http'
+const ENABLE_SSE = process.env.ENABLE_SSE === 'true' || TRANSPORT_MODE === 'http'; // Enable SSE in HTTP mode by default
 
 class TallyMcpServer {
   private server: McpServer;
@@ -1284,7 +1288,14 @@ class TallyMcpServer {
     const app = express();
     app.use(express.json());
 
-    // Handle POST requests for client-to-server communication (stateless mode)
+    // Map to store transports by session ID (for session-based mode)
+    const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+    // Map to store MCP servers by session ID
+    const servers: { [sessionId: string]: McpServer } = {};
+    // Map to store governance monitors by session ID
+    const monitors: { [sessionId: string]: GovernanceMonitor } = {};
+
+    // Handle POST requests for client-to-server communication
     app.post('/mcp', async (req: Request, res: Response) => {
       try {
         // Check if API key is available
@@ -1300,46 +1311,132 @@ class TallyMcpServer {
           return;
         }
 
-        // Create a new server instance for each request to ensure complete isolation
-        const server = new McpServer(
-          {
-            name: 'mcp-tally-api',
-            version: '1.1.0',
-          },
-          {
-            capabilities: {
-              tools: {},
-              resources: {},
-              prompts: {},
-              logging: {},
-            },
+        // Check for existing session ID
+        const sessionId = req.headers['mcp-session-id'] as string | undefined;
+        let transport: StreamableHTTPServerTransport;
+        let server: McpServer;
+
+        if (ENABLE_SSE) {
+          // Session-based mode
+          if (sessionId && transports[sessionId]) {
+            // Reuse existing transport
+            transport = transports[sessionId];
+            await transport.handleRequest(req, res, req.body);
+          } else if (!sessionId && isInitializeRequest(req.body)) {
+            // New initialization request - create session
+            let server: McpServer;
+            let monitor: GovernanceMonitor;
+            
+            transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: () => randomUUID(),
+              onsessioninitialized: (sessionId) => {
+                // Store everything by session ID
+                transports[sessionId] = transport;
+                servers[sessionId] = server;
+                monitors[sessionId] = monitor;
+              },
+            });
+
+            // Clean up transport when closed
+            transport.onclose = () => {
+              if (transport.sessionId) {
+                // Stop monitoring and clean up
+                if (monitors[transport.sessionId]) {
+                  monitors[transport.sessionId].stopMonitoring();
+                  delete monitors[transport.sessionId];
+                }
+                delete transports[transport.sessionId];
+                delete servers[transport.sessionId];
+              }
+            };
+
+            // Create server instance for this session
+            server = new McpServer(
+              {
+                name: 'mcp-tally-api',
+                version: '1.1.0',
+              },
+              {
+                capabilities: {
+                  tools: {},
+                  resources: {},
+                  prompts: {},
+                  logging: {},
+                },
+              }
+            );
+
+            // Initialize auth manager and GraphQL client for this session
+            const authManager = new AuthManager('http');
+            await authManager.initialize();
+            const graphqlClient = new TallyGraphQLClient(authManager);
+
+            // Create governance monitor for this session
+            monitor = new GovernanceMonitor(graphqlClient);
+            monitor.setServer(server);
+
+            // Set up the complete server functionality
+            await this.setupCompleteServer(server, graphqlClient);
+
+            // Connect server to transport
+            await server.connect(transport);
+
+            // Handle the request
+            await transport.handleRequest(req, res, req.body);
+          } else {
+            // Invalid request - no session ID for non-initialize request
+            res.status(400).json({
+              jsonrpc: '2.0',
+              error: {
+                code: -32000,
+                message: sessionId ? 'Invalid session ID' : 'No valid session ID provided',
+              },
+              id: req.body?.id || null,
+            });
+            return;
           }
-        );
+        } else {
+          // Stateless mode (backward compatible)
+          server = new McpServer(
+            {
+              name: 'mcp-tally-api',
+              version: '1.1.0',
+            },
+            {
+              capabilities: {
+                tools: {},
+                resources: {},
+                prompts: {},
+                logging: {},
+              },
+            }
+          );
 
-        // Initialize auth manager and GraphQL client for this request
-        const authManager = new AuthManager('http');
-        await authManager.initialize();
-        const graphqlClient = new TallyGraphQLClient(authManager);
+          // Initialize auth manager and GraphQL client for this request
+          const authManager = new AuthManager('http');
+          await authManager.initialize();
+          const graphqlClient = new TallyGraphQLClient(authManager);
 
-        // Set up the complete server functionality
-        await this.setupCompleteServer(server, graphqlClient);
+          // Set up the complete server functionality
+          await this.setupCompleteServer(server, graphqlClient);
 
-        // Create transport in stateless mode
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined, // Stateless mode
-        });
+          // Create transport in stateless mode
+          transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined, // Stateless mode
+          });
 
-        // Clean up when request closes
-        res.on('close', () => {
-          transport.close();
-          server.close();
-        });
+          // Clean up when request closes
+          res.on('close', () => {
+            transport.close();
+            server.close();
+          });
 
-        // Connect server to transport
-        await server.connect(transport);
+          // Connect server to transport
+          await server.connect(transport);
 
-        // Handle the request
-        await transport.handleRequest(req, res, req.body);
+          // Handle the request
+          await transport.handleRequest(req, res, req.body);
+        }
       } catch (error) {
         if (!res.headersSent) {
           res.status(500).json({
@@ -1354,33 +1451,74 @@ class TallyMcpServer {
       }
     });
 
-    // Handle GET requests (not supported in stateless mode)
+    // Reusable handler for GET and DELETE requests
+    const handleSessionRequest = async (req: Request, res: Response) => {
+      if (!ENABLE_SSE) {
+        // SSE not enabled in stateless mode
+        res.writeHead(405).end(JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32000,
+            message: "Method not allowed."
+          },
+          id: null
+        }));
+        return;
+      }
+
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      if (!sessionId || !transports[sessionId]) {
+        res.status(400).send('Invalid or missing session ID');
+        return;
+      }
+      
+      const transport = transports[sessionId];
+      await transport.handleRequest(req, res);
+    };
+
+    // Handle GET requests for server-to-client notifications via SSE
     app.get('/mcp', async (req: Request, res: Response) => {
-      res.writeHead(405).end(JSON.stringify({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Method not allowed."
-        },
-        id: null
-      }));
+      if (!ENABLE_SSE) {
+        res.writeHead(405).end(JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "SSE streaming not enabled in stateless mode"
+          },
+          id: null
+        }));
+        return;
+      }
+
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      if (!sessionId || !transports[sessionId]) {
+        res.status(400).send('Invalid or missing session ID');
+        return;
+      }
+      
+      const transport = transports[sessionId];
+      const monitor = monitors[sessionId];
+      
+      // Start governance monitoring when SSE connection is established
+      if (monitor) {
+        // Start monitoring all governance events
+        monitor.startMonitoring();
+      }
+      
+      await transport.handleRequest(req, res);
     });
 
-    // Handle DELETE requests (not supported in stateless mode)
-    app.delete('/mcp', async (req: Request, res: Response) => {
-      res.writeHead(405).end(JSON.stringify({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Method not allowed."
-        },
-        id: null
-      }));
-    });
+    // Handle DELETE requests for session termination
+    app.delete('/mcp', handleSessionRequest);
 
     // Start the server
     app.listen(PORT, () => {
       console.log(`MCP Tally API HTTP Server listening on port ${PORT}`);
+      if (ENABLE_SSE) {
+        console.log('SSE streaming support enabled (session-based mode)');
+      } else {
+        console.log('Running in stateless mode (SSE disabled)');
+      }
     });
   }
 
