@@ -1,0 +1,47 @@
+{
+  "library": "Model Context Protocol (MCP)",
+  "version": "2025-03-26",
+  "crawlDate": "2025-08-28",
+  "sourceUrls": [
+    "https://modelcontextprotocol.io/docs/concepts/transports",
+    "https://modelcontextprotocol.io/specification/2025-03-26/basic/transports",
+    "https://mcp-framework.com/docs/Transports/sse/",
+    "https://github.com/modelcontextprotocol/typescript-sdk",
+    "https://github.com/modelcontextprotocol/python-sdk"
+  ],
+  "capabilitiesSummary": {
+    "transports": [
+      {
+        "name": "STDIO",
+        "status": "active",
+        "useCase": "Local subprocess communication",
+        "performance": "low-latency"
+      },
+      {
+        "name": "HTTP",
+        "status": "active", 
+        "useCase": "Simple request/response",
+        "performance": "moderate-latency"
+      },
+      {
+        "name": "Streamable HTTP",
+        "status": "active",
+        "useCase": "Real-time streaming with SSE",
+        "performance": "moderate-latency-with-streaming"
+      },
+      {
+        "name": "SSE Transport",
+        "status": "deprecated",
+        "deprecatedDate": "2025-03-26",
+        "replacement": "Streamable HTTP"
+      }
+    ]
+  },
+  "keyFindings": {
+    "sseStatus": "SSE as standalone transport deprecated, now part of Streamable HTTP",
+    "currentStandard": "Streamable HTTP with optional SSE streaming",
+    "recommendationForDAO": "Implement Streamable HTTP with SSE for real-time governance data",
+    "implementationEffort": "10-14 days additional development",
+    "primaryBenefits": ["real-time updates", "reduced API polling", "enhanced UX", "competitive advantage"]
+  }
+}
