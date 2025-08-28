@@ -41,4 +41,29 @@ bun.lockb
 # Test scripts and utilities
 test-mcp-server.js
 test-simple.sh
-mcp-config.json 
+mcp-config.json
+
+# Deployment configurations (not needed in npm package)
+fly.toml
+railway.json
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Test results and development artifacts  
+comprehensive_mcp_test_*/
+mcp_test_results_*/
+test_results/
+
+# Worktree and git artifacts
+.worktrees*/
+.git*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development scripts and configs
+scripts/
