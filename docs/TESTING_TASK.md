@@ -233,7 +233,7 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "ge
 
 ```bash
 # Test with known addresses (use addresses from proposal data)
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_user_daos", "arguments": {"address": "REAL_ADDRESS"}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_user_profile", "arguments": {"address": "REAL_ADDRESS"}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
 
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_delegates", "arguments": {"organizationId": "2206072050315953936", "pageSize": 5}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
 ```

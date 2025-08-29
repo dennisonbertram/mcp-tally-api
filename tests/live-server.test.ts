@@ -277,10 +277,11 @@ describe('MCP Tally API Server - Live Tests', () => {
         'list_proposals',
         'get_proposal',
         'get_active_proposals',
-        'get_user_daos',
+        'get_user_profile',
+        'get_delegate_statement',
         'get_dao_participants',
-        'get_user_details',
         'get_delegates',
+        'execute_graphql_query',
       ];
 
       for (const expectedTool of expectedTools) {

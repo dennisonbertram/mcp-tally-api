@@ -16,9 +16,9 @@ This report identifies which MCP tools have live tests and which are missing pro
 7. **get_active_proposals** - ✅ Tested
 
 ### In `live-user-tools.test.ts`:
-8. **get_user_daos** - ✅ Tested
+8. **get_user_profile** - ✅ Tested 
 9. **get_dao_participants** - ✅ Tested
-10. **get_user_details** - ✅ Tested
+10. **get_delegate_statement** - ✅ Tested
 11. **get_delegates** - ✅ Tested
 
 ## Tools Missing Live Tests ❌
@@ -45,9 +45,9 @@ None! All 12 tools defined in the MCP server have corresponding live tests.
 - ✅ get_active_proposals - Tests cross-organization active proposals
 
 ### User Tools (4/4 tested):
-- ✅ get_user_daos - Tests user DAO participation lookup
+- ✅ get_user_profile - Tests user profile and DAO participation lookup
 - ✅ get_dao_participants - Tests DAO participant listing with pagination
-- ✅ get_user_details - Tests user profile retrieval
+- ✅ get_delegate_statement - Tests delegate statement retrieval  
 - ✅ get_delegates - Tests delegate listing with sorting options
 
 ### Utility Tools (1/1 tested):
