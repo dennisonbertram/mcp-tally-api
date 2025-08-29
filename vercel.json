@@ -12,15 +12,9 @@
     "TRANSPORT_MODE": "http",
     "NODE_ENV": "production"
   },
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api/mcp"
-    }
-  ],
   "headers": [
     {
-      "source": "/api/mcp",
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
