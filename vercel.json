@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
+    "index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
     "api/mcp.js": {
       "memory": 1024,
       "maxDuration": 30
@@ -12,6 +16,12 @@
     "TRANSPORT_MODE": "http",
     "NODE_ENV": "production"
   },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/api/mcp"
+    }
+  ],
   "headers": [
     {
       "source": "/api/mcp",
