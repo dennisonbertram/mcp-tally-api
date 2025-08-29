@@ -3,8 +3,7 @@
   "functions": {
     "api/mcp.js": {
       "memory": 1024,
-      "maxDuration": 30,
-      "runtime": "nodejs22.x"
+      "maxDuration": 30
     }
   },
   "regions": ["iad1"],
