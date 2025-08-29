@@ -39,4 +39,4 @@ export class RateLimiter {
 }
 
 // Global rate limiter instance to share across all tests
-export const globalRateLimiter = new RateLimiter(2000); // 2 second delay between calls
+export const globalRateLimiter = new RateLimiter(3000); // 3 second delay between calls

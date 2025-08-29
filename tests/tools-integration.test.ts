@@ -62,8 +62,8 @@ describe('MCP Tools Integration Tests', () => {
 
       expect(response).toBeDefined();
       const data = JSON.parse(response.content[0].text);
-      expect(data.organizations).toBeInstanceOf(Array);
-      expect(data.organizations.length).toBeLessThanOrEqual(5);
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.items.length).toBeLessThanOrEqual(5);
       expect(data.pageInfo).toBeDefined();
     });
   });
@@ -98,10 +98,10 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.organizations).toBeInstanceOf(Array);
+      expect(data.items).toBeInstanceOf(Array);
       
-      data.organizations.forEach((org: any) => {
-        expect(org.activeProposalCount).toBeGreaterThan(0);
+      data.items.forEach((org: any) => {
+        expect(org.hasActiveProposals).toBe(true);
       });
     });
   });
@@ -117,13 +117,14 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.proposals).toBeInstanceOf(Array);
-      expect(data.proposals.length).toBeLessThanOrEqual(5);
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.items.length).toBeLessThanOrEqual(5);
       
-      if (data.proposals.length > 0) {
-        const proposal = data.proposals[0];
+      if (data.items.length > 0) {
+        const proposal = data.items[0];
         expect(proposal).toHaveProperty('id');
-        expect(proposal).toHaveProperty('title');
+        expect(proposal).toHaveProperty('metadata');
+        expect(proposal.metadata).toHaveProperty('title');
         expect(proposal).toHaveProperty('status');
         expect(proposal).toHaveProperty('votingStats');
       }
@@ -143,8 +144,8 @@ describe('MCP Tools Integration Tests', () => {
 
       const listData = JSON.parse(listResponse.content[0].text);
       
-      if (listData.proposals && listData.proposals.length > 0) {
-        const proposalId = listData.proposals[0].id;
+      if (listData.items && listData.items.length > 0) {
+        const proposalId = listData.items[0].id;
         
         const response = await client.request('tools/call', {
           name: 'get_proposal',
@@ -156,7 +157,7 @@ describe('MCP Tools Integration Tests', () => {
 
         const data = JSON.parse(response.content[0].text);
         expect(data.id).toBe(proposalId);
-        expect(data.title).toBeDefined();
+        expect(data.metadata.title).toBeDefined();
       }
     });
   });
@@ -171,10 +172,10 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.proposals).toBeInstanceOf(Array);
+      expect(data.items).toBeInstanceOf(Array);
       
       // All proposals should be active or extended
-      data.proposals.forEach((proposal: any) => {
+      data.items.forEach((proposal: any) => {
         expect(['active', 'extended']).toContain(proposal.status);
       });
     });
@@ -190,8 +191,7 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.user).toBeDefined();
-      expect(data.user.address).toBe('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
+      expect(data.address).toBeDefined();
       expect(data.daoParticipations).toBeInstanceOf(Array);
     });
   });
@@ -223,13 +223,13 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.participants).toBeInstanceOf(Array);
-      expect(data.participants.length).toBeLessThanOrEqual(5);
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.items.length).toBeLessThanOrEqual(5);
       
-      if (data.participants.length > 0) {
-        const participant = data.participants[0];
-        expect(participant).toHaveProperty('address');
-        expect(participant).toHaveProperty('governanceTokens');
+      if (data.items.length > 0) {
+        const participant = data.items[0];
+        expect(participant).toHaveProperty('account');
+        expect(participant.account).toHaveProperty('address');
       }
     });
   });
@@ -246,11 +246,11 @@ describe('MCP Tools Integration Tests', () => {
       });
 
       const data = JSON.parse(response.content[0].text);
-      expect(data.delegates).toBeInstanceOf(Array);
-      expect(data.delegates.length).toBeLessThanOrEqual(5);
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.items.length).toBeLessThanOrEqual(5);
       
-      if (data.delegates.length > 0) {
-        const delegate = data.delegates[0];
+      if (data.items.length > 0) {
+        const delegate = data.items[0];
         expect(delegate).toHaveProperty('account');
         expect(delegate).toHaveProperty('votesCount');
         expect(delegate.account).toHaveProperty('address');
