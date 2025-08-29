@@ -1,10 +1,10 @@
 {
   "name": "mcp-tally-api",
   "version": "1.2.0",
-  "description": "Model Context Protocol server for Tally blockchain governance API",
+  "description": "Model Context Protocol server for Tally blockchain governance API - Vercel Serverless Functions",
   "type": "module",
-  "scripts": {
-    "build": "echo 'No build needed - using pre-bundled JavaScript'"
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.0",
@@ -12,9 +12,6 @@
     "graphql-request": "^7.2.0",
     "zod": "^3.25.29"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": ["mcp", "blockchain", "governance", "dao", "tally"],
+  "keywords": ["mcp", "blockchain", "governance", "dao", "tally", "vercel", "serverless"],
   "license": "MIT"
 }

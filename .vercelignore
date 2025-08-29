@@ -1,0 +1,35 @@
+# Test files and directories
+tests/
+mcp_test_results_*/
+comprehensive_mcp_test_*/
+debug_session_*/
+*test*.js
+*test*.json
+*test*.ts
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+dist/
+scripts/
+mcp-config.json
+manual-test.js
+test-implementation.js
+test-stdio.js
+
+# IDE and system files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Other
+LICENSE
