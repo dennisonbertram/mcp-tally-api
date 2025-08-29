@@ -29,6 +29,11 @@ import { registerExecuteGraphQLQueryTool } from './tools/execute-graphql-query.j
 import { registerDelegateLeaderboardTool } from './tools/delegate-leaderboard.js';
 import { registerVoterProfileTool } from './tools/voter-profile.js';
 import { registerRecentVotesTool } from './tools/recent-votes.js';
+import { registerProposalSummaryTool } from './tools/proposal-summary.js';
+import { registerDelegationStatusTool } from './tools/delegation-status.js';
+import { registerDAOVotingStatsTool } from './tools/dao-voting-stats.js';
+import { registerProposalTimelineTool } from './tools/proposal-timeline.js';
+import { registerVoteHistoryTool } from './tools/vote-history.js';
 import {
   listOrganizations,
   getOrganization,
@@ -124,6 +129,11 @@ class TallyMcpServer {
     registerDelegateLeaderboardTool(this.server, this.graphqlClient!);
     registerVoterProfileTool(this.server, this.graphqlClient!);
     registerRecentVotesTool(this.server, this.graphqlClient!);
+    registerProposalSummaryTool(this.server, this.graphqlClient!);
+    registerDelegationStatusTool(this.server, this.graphqlClient!);
+    registerDAOVotingStatsTool(this.server, this.graphqlClient!);
+    registerProposalTimelineTool(this.server, this.graphqlClient!);
+    registerVoteHistoryTool(this.server, this.graphqlClient!);
   }
 
   private setupResources() {
