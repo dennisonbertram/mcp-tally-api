@@ -26,6 +26,7 @@ import { registerGetDelegateStatementTool } from './tools/get-delegate-statement
 import { registerGetDAOParticipantsTool } from './tools/get-dao-participants.js';
 import { registerGetDelegatesTool } from './tools/get-delegates.js';
 import { registerExecuteGraphQLQueryTool } from './tools/execute-graphql-query.js';
+import { registerDelegateLeaderboardTool } from './tools/delegate-leaderboard.js';
 import {
   listOrganizations,
   getOrganization,
@@ -116,8 +117,9 @@ class TallyMcpServer {
     registerGetDAOParticipantsTool(this.server, this.graphqlClient!);
     registerGetDelegatesTool(this.server, this.graphqlClient!);
 
-    // Advanced Query Tool
+    // Advanced Query Tools
     registerExecuteGraphQLQueryTool(this.server, this.graphqlClient!);
+    registerDelegateLeaderboardTool(this.server, this.graphqlClient!);
   }
 
   private setupResources() {
@@ -369,6 +371,9 @@ process.on('uncaughtException', () => {
 process.on('unhandledRejection', () => {
   process.exit(1);
 });
+
+// Export the server class for testing
+export { TallyMcpServer };
 
 // Start the server
 main().catch(() => {
