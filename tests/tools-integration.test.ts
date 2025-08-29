@@ -7,11 +7,15 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MCPStdioClient } from './helpers/mcp-stdio-client';
+import { globalRateLimiter } from './helpers/rate-limiter';
 
 describe('MCP Tools Integration Tests', () => {
   let client: MCPStdioClient;
 
   beforeAll(async () => {
+    // Reset rate limiter for fresh start
+    globalRateLimiter.reset();
+    
     client = new MCPStdioClient();
     await client.start();
     await client.initialize();

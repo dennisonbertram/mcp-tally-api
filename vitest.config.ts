@@ -9,6 +9,15 @@ export default defineConfig({
       NODE_ENV: 'test',
     },
     setupFiles: ['./tests/setup.ts'],
+    // Run tests sequentially to avoid API rate limits
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+        maxThreads: 1,
+        minThreads: 1,
+      },
+    },
   },
   esbuild: {
     target: 'node18',

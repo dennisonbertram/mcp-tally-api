@@ -8,11 +8,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MCPStdioClient } from './helpers/mcp-stdio-client';
 import { isValidRequest, isValidResponse } from './helpers/json-rpc-helpers';
+import { globalRateLimiter } from './helpers/rate-limiter';
 
 describe('MCP Protocol Compliance', () => {
   let client: MCPStdioClient;
 
   beforeAll(async () => {
+    // Reset rate limiter for protocol compliance tests
+    globalRateLimiter.reset();
+    
     client = new MCPStdioClient();
     await client.start();
   });

@@ -13,6 +13,7 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
+import { globalRateLimiter } from './rate-limiter';
 
 interface MCPRequest {
   jsonrpc: string;
@@ -149,6 +150,11 @@ export class MCPStdioClient {
   async request(method: string, params?: any): Promise<any> {
     if (!this.isRunning()) {
       throw new Error('Server is not running');
+    }
+
+    // Apply rate limiting for API calls (but not for MCP protocol methods)
+    if (method === 'tools/call' || method === 'resources/read') {
+      await globalRateLimiter.waitForRateLimit();
     }
 
     const id = this.requestId++;
