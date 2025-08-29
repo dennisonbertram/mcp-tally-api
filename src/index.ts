@@ -14,6 +14,8 @@ import { z } from 'zod';
 // Import our tool implementations
 import { AuthManager } from './auth.js';
 import { TallyGraphQLClient } from './graphql-client.js';
+import { registerGetServerInfoTool } from './tools/get-server-info.js';
+import { registerListOrganizationsTool } from './tools/list-organizations.js';
 import {
   listOrganizations,
   getOrganization,
@@ -90,127 +92,10 @@ class TallyMcpServer {
 
   private setupTools() {
     // Get server info tool
-    this.server.tool(
-      'get_server_info',
-      'Get information about the MCP Tally API server',
-      {},
-      async (): Promise<CallToolResult> => {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  name: 'mcp-tally-api',
-                  version: '1.1.0',
-                  transport: TRANSPORT_MODE,
-                  tally_api_url: TALLY_API_URL,
-                  api_key_configured: !!TALLY_API_KEY,
-                  timestamp: new Date().toISOString(),
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-    );
+    registerGetServerInfoTool(this.server);
 
     // Organization Management Tools
-    this.server.tool(
-      'list_organizations',
-      'List organizations with pagination, filtering, and sorting options',
-      {
-        page: z.number().optional().describe('Page number (default: 1)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of organizations per page (max: 100, default: 20)'),
-        chainId: z
-          .string()
-          .optional()
-          .describe(
-            'Filter by blockchain chain ID (e.g., "eip155:1" for Ethereum mainnet)'
-          ),
-        hasLogo: z
-          .boolean()
-          .optional()
-          .describe('Filter by whether organization has a logo'),
-        sortBy: z
-          .string()
-          .optional()
-          .describe(
-            'Sort field: id (date), name, explore (by activity), popular (default: name)'
-          ),
-        sortOrder: z
-          .string()
-          .optional()
-          .describe('Sort order: asc or desc (default: asc)'),
-      },
-      async (args): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await listOrganizations(this.graphqlClient, {
-            page: args.page,
-            pageSize: args.pageSize,
-            chainId: args.chainId,
-            hasLogo: args.hasLogo,
-            sortBy: args.sortBy as any,
-            sortOrder: args.sortOrder as any,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result.organizations.map((org) => ({
-              ...org,
-              chainIds: [org.chainId], // Convert single chainId to array
-              proposalCount: org.proposalStats.total,
-              hasActiveProposals: org.proposalStats.active > 0,
-            })),
-            totalCount: result.pagination.totalCount,
-            pageInfo: {
-              hasNextPage: result.pagination.hasNextPage,
-              hasPreviousPage: result.pagination.hasPreviousPage,
-              startCursor: undefined,
-              endCursor: undefined,
-            },
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerListOrganizationsTool(this.server, this.graphqlClient!);
 
     this.server.tool(
       'get_organization',
@@ -1397,124 +1282,10 @@ class TallyMcpServer {
 
   private setupAllTools(server: McpServer, graphqlClient: TallyGraphQLClient) {
     // Get server info tool
-    server.tool(
-      'get_server_info',
-      'Get information about the MCP Tally API server',
-      {},
-      async (): Promise<CallToolResult> => {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  name: 'mcp-tally-api',
-                  version: '1.1.0',
-                  transport: TRANSPORT_MODE,
-                  tally_api_url: TALLY_API_URL,
-                  api_key_configured: !!TALLY_API_KEY,
-                  timestamp: new Date().toISOString(),
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-    );
+    registerGetServerInfoTool(server);
 
     // Organization Management Tools
-    server.tool(
-      'list_organizations',
-      'List organizations with pagination, filtering, and sorting options',
-      {
-        page: z.number().optional().describe('Page number (default: 1)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of organizations per page (max: 100, default: 20)'),
-        chainId: z
-          .string()
-          .optional()
-          .describe(
-            'Filter by blockchain chain ID (e.g., "eip155:1" for Ethereum mainnet)'
-          ),
-        hasLogo: z
-          .boolean()
-          .optional()
-          .describe('Filter by whether organization has a logo'),
-        sortBy: z
-          .string()
-          .optional()
-          .describe(
-            'Sort field: id (date), name, explore (by activity), popular (default: name)'
-          ),
-        sortOrder: z
-          .string()
-          .optional()
-          .describe('Sort order: asc or desc (default: asc)'),
-      },
-      async (args): Promise<CallToolResult> => {
-        try {
-          const result = await listOrganizations(graphqlClient, {
-            page: args.page,
-            pageSize: args.pageSize,
-            chainId: args.chainId,
-            hasLogo: args.hasLogo,
-            sortBy: args.sortBy as any,
-            sortOrder: args.sortOrder as any,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result.organizations.map((org) => ({
-              ...org,
-              chainIds: [org.chainId], // Convert single chainId to array
-              proposalCount: org.proposalStats.total,
-              hasActiveProposals: org.proposalStats.active > 0,
-            })),
-            totalCount: result.pagination.totalCount,
-            pageInfo: {
-              hasNextPage: result.pagination.hasNextPage,
-              hasPreviousPage: result.pagination.hasPreviousPage,
-              startCursor: undefined,
-              endCursor: undefined,
-            },
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerListOrganizationsTool(server, graphqlClient);
 
     // For now, I'll add just the essential tools to test the HTTP functionality
     // The complete tool setup can be added later
