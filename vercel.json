@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/mcp.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
   "regions": ["iad1"],
   "env": {
     "ENABLE_SSE": "false",
@@ -14,7 +8,7 @@
   },
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/mcp",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",

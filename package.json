@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "description": "Model Context Protocol server for Tally blockchain governance API",
   "type": "module",
-  "main": "api/mcp.js",
+  "main": "api/index.js",
   "scripts": {
     "build": "echo 'No build needed - using pre-bundled JavaScript'"
   },
