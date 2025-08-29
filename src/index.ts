@@ -22,6 +22,10 @@ import { registerListProposalsTool } from './tools/list-proposals.js';
 import { registerGetProposalTool } from './tools/get-proposal.js';
 import { registerGetActiveProposalsTool } from './tools/get-active-proposals.js';
 import { registerGetUserProfileTool } from './tools/get-user-profile.js';
+import { registerGetDelegateStatementTool } from './tools/get-delegate-statement.js';
+import { registerGetDAOParticipantsTool } from './tools/get-dao-participants.js';
+import { registerGetDelegatesTool } from './tools/get-delegates.js';
+import { registerExecuteGraphQLQueryTool } from './tools/execute-graphql-query.js';
 import {
   listOrganizations,
   getOrganization,
@@ -32,12 +36,6 @@ import {
   getProposal,
   getActiveProposals,
 } from './proposal-tools.js';
-import {
-  getUserProfile,
-  getDelegateStatement,
-  getDAOParticipants,
-  getDelegates,
-} from './user-tools.js';
 import { getPopularDAOsData } from './resources/popular-daos.js';
 import { getOrganizationOverview } from './resources/organization-overview.js';
 import { getProposalOverview } from './resources/proposal-overview.js';
@@ -112,258 +110,12 @@ class TallyMcpServer {
 
     // User and Delegation Query Tools
     registerGetUserProfileTool(this.server, this.graphqlClient!);
-
-    this.server.tool(
-      'get_delegate_statement',
-      'Get delegate statement for a specific user and organization',
-      {
-        address: z.string().describe('Ethereum address of the delegate (required)'),
-        organizationId: z.string().describe('Organization ID (required)'),
-      },
-      async ({ address, organizationId }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getDelegateStatement(this.graphqlClient, { address, organizationId });
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
-
-    this.server.tool(
-      'get_dao_participants',
-      'Get participants of a specific DAO with pagination, filtering, and sorting',
-      {
-        organizationId: z
-          .string()
-          .describe('Organization ID (required)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of participants per page (max: 100, default: 20)'),
-      },
-      async ({
-        organizationId,
-        pageSize,
-      }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getDAOParticipants(this.graphqlClient, {
-            organizationId,
-            pageSize,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result?.items || [],
-            totalCount: result?.totalCount || 0,
-            pageInfo: {
-              hasNextPage: result?.pageInfo.hasNextPage || false,
-              hasPreviousPage: result?.pageInfo.hasPreviousPage || false,
-              startCursor: result?.pageInfo.startCursor,
-              endCursor: result?.pageInfo.endCursor,
-            },
-            conversionReminder: result?.conversionReminder || "⚠️ IMPORTANT: All votesCount values are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals using the tokenInfo.decimals field, or use 18 decimals as default.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
-
-    this.server.tool(
-      'get_delegates',
-      'Get enhanced delegate information for a specific organization including voting power, account details, statements, and organization info',
-      {
-        organizationId: z
-          .string()
-          .describe('Organization ID (required)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of delegates per page (max: 100, default: 20)'),
-        sortBy: z
-          .string()
-          .optional()
-          .describe(
-            'Sort field: id, votes, delegators, isPrioritized (default: votes)'
-          ),
-        sortOrder: z
-          .string()
-          .optional()
-          .describe('Sort order: asc or desc (default: desc)'),
-      },
-      async ({
-        organizationId,
-        pageSize,
-        sortBy,
-        sortOrder,
-      }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getDelegates(this.graphqlClient, {
-            organizationId,
-            pageSize,
-            sortBy,
-            sortOrder,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result?.items || [],
-            totalCount: result?.totalCount || 0,
-            pageInfo: {
-              hasNextPage: result?.pageInfo.hasNextPage || false,
-              hasPreviousPage: result?.pageInfo.hasPreviousPage || false,
-              startCursor: result?.pageInfo.startCursor,
-              endCursor: result?.pageInfo.endCursor,
-            },
-            conversionReminder: "⚠️ IMPORTANT: All vote counts and voting power values (votesCount, delegated amounts) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerGetDelegateStatementTool(this.server, this.graphqlClient!);
+    registerGetDAOParticipantsTool(this.server, this.graphqlClient!);
+    registerGetDelegatesTool(this.server, this.graphqlClient!);
 
     // Advanced Query Tool
-    this.server.tool(
-      'execute_graphql_query',
-      'Execute an arbitrary GraphQL query against the Tally API',
-      {
-        query: z.string().describe('GraphQL query string'),
-        variables: z.record(z.any()).optional().describe('Optional variables for the GraphQL query'),
-      },
-      async ({ query, variables }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-
-          // Execute the arbitrary query
-          const result = await this.graphqlClient.query(query, variables);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerExecuteGraphQLQueryTool(this.server, this.graphqlClient!);
   }
 
   private setupResources() {
@@ -835,52 +587,12 @@ class TallyMcpServer {
 
     // User and Delegation Query Tools
     registerGetUserProfileTool(server, graphqlClient);
+    registerGetDelegateStatementTool(server, graphqlClient);
+    registerGetDAOParticipantsTool(server, graphqlClient);
+    registerGetDelegatesTool(server, graphqlClient);
 
     // Advanced Query Tool
-    server.tool(
-      'execute_graphql_query',
-      'Execute an arbitrary GraphQL query against the Tally API',
-      {
-        query: z.string().describe('GraphQL query string'),
-        variables: z.record(z.any()).optional().describe('Optional variables for the GraphQL query'),
-      },
-      async ({ query, variables }): Promise<CallToolResult> => {
-        try {
-          // Execute the arbitrary query
-          const result = await graphqlClient.query(query, variables);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerExecuteGraphQLQueryTool(server, graphqlClient);
   }
 
   private setupAllResources(server: McpServer, graphqlClient: TallyGraphQLClient) {
