@@ -25,14 +25,6 @@ TRANSPORT_MODE=stdio \
 bun run dist/index.js
 ```
 
-#### Test Connection
-```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "test_connection", "arguments": {}}}' | \
-TALLY_API_KEY=your_api_key_here \
-TRANSPORT_MODE=stdio \
-bun run dist/index.js
-```
-
 #### Test Organizations Tool
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_organizations_with_active_proposals", "arguments": {}}}' | \
@@ -187,7 +179,7 @@ describe('TallyGraphQLClient', () => {
 test('MCP server responds to tools/call', async () => {
   const response = await sendMCPMessage({
     method: 'tools/call',
-    params: { name: 'test_connection', arguments: {} }
+    params: { name: 'get_server_info', arguments: {} }
   });
   expect(response.result).toBeDefined();
 });
@@ -209,18 +201,18 @@ test('MCP server responds to tools/call', async () => {
 #### MCP Tools (12 total)
 - **Status**: ✅ All working and tested
 - **Tools**:
-  1. `test_connection` - Server health check
-  2. `get_server_info` - Server metadata
-  3. `list_organizations` - Organization listing with filters
-  4. `get_organization` - Single organization details
-  5. `get_organizations_with_active_proposals` - Active proposal filtering
-  6. `list_proposals` - Proposal listing for organizations
-  7. `get_proposal` - Single proposal details
-  8. `get_active_proposals` - Cross-organization active proposals
-  9. `get_user_daos` - User DAO participation
-  10. `get_dao_participants` - DAO member listing
-  11. `get_user_details` - User profile information
-  12. `get_delegates` - Delegate information and rankings
+  1. `execute_graphql_query` - Raw GraphQL query execution
+  2. `get_active_proposals` - Cross-organization active proposals
+  3. `get_dao_participants` - DAO member listing
+  4. `get_delegate_statement` - Delegate statement information
+  5. `get_delegates` - Delegate information and rankings
+  6. `get_organization` - Single organization details
+  7. `get_organizations_with_active_proposals` - Active proposal filtering
+  8. `get_proposal` - Single proposal details
+  9. `get_server_info` - Server metadata
+  10. `get_user_profile` - User profile information
+  11. `list_organizations` - Organization listing with filters
+  12. `list_proposals` - Proposal listing for organizations
 
 #### MCP Resources (2 total)
 - **Status**: ✅ Both working
@@ -263,7 +255,7 @@ test('MCP server responds to tools/call', async () => {
 ### 🔄 Maintenance & Monitoring
 
 #### Health Checks
-- Use `test_connection` tool for basic health monitoring
+- Use `get_server_info` tool for basic health monitoring
 - Popular DAOs resource includes error status in response
 - All tools include proper error handling and reporting
 

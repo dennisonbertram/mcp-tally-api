@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_proposal_votes",
+    "arguments": {
+      "proposalId": "2662020087342433698",
+      "limit": 10
+    }
+  }
+}

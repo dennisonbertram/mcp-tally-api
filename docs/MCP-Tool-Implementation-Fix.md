@@ -153,10 +153,11 @@ This fix must be applied to ALL remaining tools:
 - `list_proposals`
 - `get_proposal`
 - `get_active_proposals`
-- `get_user_daos`
+- `get_user_profile`
 - `get_dao_participants`
-- `get_user_details`
+- `get_delegate_statement`
 - `get_delegates`
+- `execute_graphql_query`
 
 Each tool needs:
 

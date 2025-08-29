@@ -82,9 +82,9 @@ Restart Cursor/Claude Desktop and start asking about DAOs:
 
 ### 👥 **User & Delegation**
 
-- **get_user_daos**: Discover which DAOs a user participates in
+- **get_user_profile**: Get comprehensive user profile including DAO participations
 - **get_dao_participants**: List members of a specific DAO with sorting options
-- **get_user_details**: Get comprehensive user information and governance activity
+- **get_delegate_statement**: Get delegate statement for a specific user and organization
 - **get_delegates**: Find delegates in a DAO with delegation statistics
 
 ### 📚 **Resources**
