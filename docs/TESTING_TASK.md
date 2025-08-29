@@ -97,18 +97,18 @@ bunx @modelcontextprotocol/inspector
 
 **Expected Tools:**
 
-1. `test_connection`
-2. `get_server_info`
-3. `list_organizations`
-4. `get_organization`
-5. `get_organizations_with_active_proposals`
-6. `list_proposals`
-7. `get_proposal`
-8. `get_active_proposals`
-9. `get_user_daos`
-10. `get_dao_participants`
-11. `get_user_details`
-12. `get_delegates`
+1. `execute_graphql_query`
+2. `get_active_proposals`
+3. `get_dao_participants`
+4. `get_delegate_statement`
+5. `get_delegates`
+6. `get_organization`
+7. `get_organizations_with_active_proposals`
+8. `get_proposal`
+9. `get_server_info`
+10. `get_user_profile`
+11. `list_organizations`
+12. `list_proposals`
 
 #### **1.2 Fix Non-Working Tools**
 
@@ -233,7 +233,7 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "ge
 
 ```bash
 # Test with known addresses (use addresses from proposal data)
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_user_daos", "arguments": {"address": "REAL_ADDRESS"}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_user_profile", "arguments": {"address": "REAL_ADDRESS"}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
 
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_delegates", "arguments": {"organizationId": "2206072050315953936", "pageSize": 5}}}' | TALLY_API_KEY=KEY TRANSPORT_MODE=stdio bun run start
 ```

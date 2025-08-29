@@ -132,13 +132,18 @@ test('should list all expected tools', async () => {
   const toolNames = result.tools.map((tool) => tool.name);
 
   const expectedTools = [
-    'test_connection',
-    'get_server_info',
-    'list_organizations',
+    'execute_graphql_query',
+    'get_active_proposals',
+    'get_dao_participants',
+    'get_delegate_statement',
+    'get_delegates',
     'get_organization',
-    'list_proposals',
+    'get_organizations_with_active_proposals',
     'get_proposal',
-    // ... all 12 tools
+    'get_server_info',
+    'get_user_profile',
+    'list_organizations',
+    'list_proposals',
   ];
 
   for (const expectedTool of expectedTools) {

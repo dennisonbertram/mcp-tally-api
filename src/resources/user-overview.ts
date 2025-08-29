@@ -4,6 +4,8 @@
  * Provides human-readable markdown overviews of user governance profiles via tally://user/{address}
  */
 
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import { TallyGraphQLClient } from '../graphql-client.js';
 import { getUserProfile } from '../user-tools.js';
 
@@ -158,4 +160,40 @@ function formatVotingPower(votingPower: number | string): string {
   } else {
     return num.toLocaleString();
   }
+}
+
+/**
+ * Register the user overview resource template with the MCP server
+ * 
+ * @param server - The McpServer instance to register the resource with
+ * @param graphqlClient - The TallyGraphQLClient instance for API access
+ */
+export function registerUserOverviewResource(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+  server.resource(
+    'user-overview',
+    new ResourceTemplate('tally://user/{address}', { list: undefined }),
+    async (uri, params): Promise<ReadResourceResult> => {
+      if (!graphqlClient) {
+        throw new Error('Server not properly initialized');
+      }
+      
+      const address = Array.isArray(params.address) ? params.address[0] : params.address;
+      
+      if (!address) {
+        throw new Error('Address parameter is required');
+      }
+      
+      const response = await getUserOverview(graphqlClient, address);
+
+      return {
+        contents: [
+          {
+            uri: response.uri,
+            mimeType: response.mimeType,
+            text: response.text,
+          },
+        ],
+      };
+    }
+  );
 } 

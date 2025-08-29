@@ -6,6 +6,8 @@
  * It provides real-time accurate information and lookup dictionaries.
  */
 
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import { TallyGraphQLClient } from '../graphql-client.js';
 
 export interface PopularDAOMapping {
@@ -333,4 +335,35 @@ export async function getSupportedChains(graphqlClient: TallyGraphQLClient): Pro
   const response = await getPopularDAOsData(graphqlClient);
   if (response.status !== 'success') return [];
   return Object.keys(response.chains_by_id);
+}
+
+/**
+ * Register the popular DAOs resource with the MCP server
+ * 
+ * @param server - The McpServer instance to register the resource with
+ * @param graphqlClient - The TallyGraphQLClient instance for API access
+ */
+export function registerPopularDaosResource(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+  server.resource(
+    'popular-daos',
+    'tally://popular-daos',
+    { mimeType: 'application/json' },
+    async (): Promise<ReadResourceResult> => {
+      if (!graphqlClient) {
+        throw new Error('Server not properly initialized');
+      }
+      
+      const response = await getPopularDAOsData(graphqlClient);
+
+      return {
+        contents: [
+          {
+            uri: 'tally://popular-daos',
+            mimeType: 'application/json',
+            text: JSON.stringify(response, null, 2),
+          },
+        ],
+      };
+    }
+  );
 }

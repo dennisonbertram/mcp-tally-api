@@ -270,7 +270,6 @@ describe('MCP Tally API Server - Live Tests', () => {
 
       const toolNames = result.tools.map((tool: any) => tool.name);
       const expectedTools = [
-        'test_connection',
         'get_server_info',
         'list_organizations',
         'get_organization',
@@ -278,10 +277,11 @@ describe('MCP Tally API Server - Live Tests', () => {
         'list_proposals',
         'get_proposal',
         'get_active_proposals',
-        'get_user_daos',
+        'get_user_profile',
+        'get_delegate_statement',
         'get_dao_participants',
-        'get_user_details',
         'get_delegates',
+        'execute_graphql_query',
       ];
 
       for (const expectedTool of expectedTools) {
@@ -304,16 +304,6 @@ describe('MCP Tally API Server - Live Tests', () => {
   });
 
   describe('Utility Tools', () => {
-    test('test_connection should work', async () => {
-      const result = await client.callTool('test_connection');
-
-      expect(result).toHaveProperty('content');
-      expect(Array.isArray(result.content)).toBe(true);
-      expect(result.content[0]).toHaveProperty('text');
-      expect(result.content[0].text).toContain(
-        'MCP Tally API Server is running'
-      );
-    });
 
     test('get_server_info should return valid info', async () => {
       const result = await client.callTool('get_server_info');

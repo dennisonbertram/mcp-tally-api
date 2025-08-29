@@ -17,7 +17,6 @@ class MockMCPTestClient {
   async listTools(): Promise<any> {
     return {
       tools: [
-        { name: 'test_connection', description: 'Test server connectivity' },
         { name: 'get_server_info', description: 'Get server information' },
         { name: 'list_organizations', description: 'List organizations' },
         { name: 'get_organization', description: 'Get organization details' },
@@ -30,15 +29,6 @@ class MockMCPTestClient {
   async callTool(name: string, args: any = {}): Promise<any> {
     // Mock responses based on tool name
     switch (name) {
-      case 'test_connection':
-        return {
-          content: [
-            {
-              text: 'MCP Tally API Server is running and accessible',
-            },
-          ],
-        };
-
       case 'get_server_info':
         return {
           content: [
@@ -179,24 +169,12 @@ describe('MCP Tally API Server - Demo Tests', () => {
       expect(Array.isArray(result.tools)).toBe(true);
 
       const toolNames = result.tools.map((tool: any) => tool.name);
-      expect(toolNames).toContain('test_connection');
       expect(toolNames).toContain('list_organizations');
       expect(toolNames).toContain('get_organization');
     });
   });
 
   describe('Utility Tools', () => {
-    test('test_connection should work', async () => {
-      const result = await client.callTool('test_connection');
-
-      expect(result).toHaveProperty('content');
-      expect(Array.isArray(result.content)).toBe(true);
-      expect(result.content[0]).toHaveProperty('text');
-      expect(result.content[0].text).toContain(
-        'MCP Tally API Server is running'
-      );
-    });
-
     test('get_server_info should return valid info', async () => {
       const result = await client.callTool('get_server_info');
 
@@ -334,7 +312,6 @@ describe('MCP Tally API Server - Demo Tests', () => {
         client.callTool('get_organization', {
           organizationId: '2206072050458560434',
         }),
-        client.callTool('test_connection'),
       ];
 
       const results = await Promise.all(requests);
@@ -342,7 +319,7 @@ describe('MCP Tally API Server - Demo Tests', () => {
       const responseTime = Date.now() - startTime;
 
       // All requests should succeed
-      expect(results).toHaveLength(3);
+      expect(results).toHaveLength(2);
       for (const result of results) {
         expect(result).toHaveProperty('content');
       }
