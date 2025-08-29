@@ -17465,12 +17465,5 @@ function setupAllPrompts(server) {
     });
   });
 }
-var config = {
-  runtime: "nodejs",
-  maxDuration: 30,
-  memory: 1024
-};
-export {
-  handler as default,
-  config
-};
+// Export handler in standard Vercel format for auto-detection
+export default handler;
