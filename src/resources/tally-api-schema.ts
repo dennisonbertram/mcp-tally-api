@@ -113,9 +113,103 @@ export function registerTallyApiSchemaResource(server: McpServer, graphqlClient:
               uri: 'tally://api/schema',
               mimeType: 'application/json',
               text: JSON.stringify({
-                description: 'Tally GraphQL API Schema',
+                description: 'Tally GraphQL API Schema with Practical Examples',
                 timestamp: new Date().toISOString(),
                 schema: schemaData,
+                practicalExamples: {
+                  votesQuery: {
+                    description: 'Query votes on a specific proposal with voter details and voting power',
+                    howItWorks: {
+                      nodes: 'GraphQL uses nodes pattern for paginated results. The actual data is in nodes array, metadata in pageInfo',
+                      filters: 'Use filters object to narrow results by proposalId, vote type, hasReason, voter address, etc.',
+                      sorting: 'Use sort object with isDescending boolean and sortBy field (id, amount, etc.)',
+                      pagination: 'Use page object with limit (max results) and cursors for navigation'
+                    },
+                    query: `query Votes($input: VotesInput!) {
+  votes(input: $input) {
+    nodes {
+      ... on OnchainVote {
+        id
+        amount
+        voter {
+          id
+          address
+          ens
+          name
+        }
+        type
+        reason
+        proposal {
+          id
+          metadata {
+            title
+          }
+        }
+        txHash
+        block {
+          timestamp
+          number
+        }
+        chainId
+      }
+    }
+    pageInfo {
+      firstCursor
+      lastCursor
+      count
+    }
+  }
+}`,
+                    exampleVariables: {
+                      basic: {
+                        input: {
+                          filters: {
+                            proposalId: "2662020087342433698"
+                          },
+                          page: { limit: 10 }
+                        }
+                      },
+                      withReasons: {
+                        input: {
+                          filters: {
+                            proposalId: "2662020087342433698",
+                            hasReason: true
+                          },
+                          page: { limit: 5 }
+                        }
+                      },
+                      againstVotes: {
+                        input: {
+                          filters: {
+                            proposalId: "2662020087342433698",
+                            type: "against"
+                          },
+                          page: { limit: 3 },
+                          sort: {
+                            isDescending: true,
+                            sortBy: "amount"
+                          }
+                        }
+                      }
+                    },
+                    availableFilters: {
+                      proposalId: 'Required - ID of the proposal to get votes for',
+                      type: 'Optional - Vote type: "for", "against", or "abstain"',
+                      hasReason: 'Optional - Boolean to filter votes with/without comments',
+                      voter: 'Optional - Specific voter address to filter by',
+                      chainId: 'Optional - Blockchain chain ID filter'
+                    },
+                    voteDataExplanation: {
+                      amount: 'Voting power/weight used (in token units, often needs decimal conversion)',
+                      voter: 'Complete voter information including address, ENS name if available',
+                      type: 'Vote direction - for, against, or abstain',
+                      reason: 'Optional comment/reasoning provided by voter (can be null)',
+                      txHash: 'Transaction hash of the vote on-chain',
+                      block: 'Block information including timestamp and block number',
+                      chainId: 'Blockchain identifier (e.g., 1 for Ethereum mainnet, 137 for Polygon)'
+                    }
+                  }
+                }
               }, null, 2),
             },
           ],
