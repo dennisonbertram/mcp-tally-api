@@ -16,6 +16,8 @@ import { AuthManager } from './auth.js';
 import { TallyGraphQLClient } from './graphql-client.js';
 import { registerGetServerInfoTool } from './tools/get-server-info.js';
 import { registerListOrganizationsTool } from './tools/list-organizations.js';
+import { registerGetOrganizationTool } from './tools/get-organization.js';
+import { registerGetOrganizationsWithActiveProposalsTool } from './tools/get-organizations-with-active-proposals.js';
 import {
   listOrganizations,
   getOrganization,
@@ -96,169 +98,8 @@ class TallyMcpServer {
 
     // Organization Management Tools
     registerListOrganizationsTool(this.server, this.graphqlClient!);
-
-    this.server.tool(
-      'get_organization',
-      'Get detailed information about a specific organization by ID or slug',
-      {
-        organizationId: z
-          .string()
-          .optional()
-          .describe('Organization ID (use either this or organizationSlug)'),
-        organizationSlug: z
-          .string()
-          .optional()
-          .describe('Organization slug (use either this or organizationId)'),
-      },
-      async ({ organizationId, organizationSlug }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getOrganization(this.graphqlClient, {
-            organizationId,
-            organizationSlug,
-          });
-
-          if (!result) {
-            throw new Error('Organization not found');
-          }
-
-          // Transform to include all expected fields
-          const response = {
-            id: result.id,
-            name: result.name,
-            slug: result.slug,
-            chainIds: [result.chainId], // Convert single chainId to array
-            memberCount: result.memberCount,
-            proposalCount: result.proposalStats.total,
-            hasActiveProposals: result.proposalStats.active > 0,
-            description: result.description,
-            website: result.website,
-            twitter: result.twitter,
-            github: result.github,
-            timelocks: result.timelocks, // Include timelock information
-            safes: result.safes, // Include safe addresses
-            conversionReminder: "⚠️ IMPORTANT: When analyzing proposals or votes for this organization, all vote counts and token amounts are in raw token units (Ethereum-style). Use tokenInfo.decimals to convert: human-readable amount = raw value ÷ 10^decimals.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
-
-    this.server.tool(
-      'get_organizations_with_active_proposals',
-      'Get organizations that have active proposals with filtering options',
-      {
-        minActiveProposals: z
-          .number()
-          .optional()
-          .describe('Minimum number of active proposals (default: 1)'),
-        chainId: z.string().optional().describe('Filter by chain ID'),
-        page: z.number().optional().describe('Page number (default: 1)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of organizations per page (max: 100, default: 20)'),
-      },
-      async ({
-        minActiveProposals,
-        chainId,
-        page,
-        pageSize,
-      }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getOrganizationsWithActiveProposals(
-            this.graphqlClient,
-            {
-              page,
-              pageSize,
-              minActiveProposals,
-              chainId,
-            }
-          );
-
-          // Transform to expected structure
-          const response = {
-            items: result.organizations.map((org) => ({
-              ...org,
-              chainIds: [org.chainId], // Convert single chainId to array
-              proposalCount: org.proposalStats.total,
-              hasActiveProposals: org.proposalStats.active > 0,
-            })),
-            totalCount: result.pagination.totalCount,
-            pageInfo: {
-              hasNextPage: result.pagination.hasNextPage,
-              hasPreviousPage: result.pagination.hasPreviousPage,
-              startCursor: undefined,
-              endCursor: undefined,
-            },
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerGetOrganizationTool(this.server, this.graphqlClient!);
+    registerGetOrganizationsWithActiveProposalsTool(this.server, this.graphqlClient!);
 
     // Proposal Operations Tools
     this.server.tool(
@@ -1286,6 +1127,8 @@ class TallyMcpServer {
 
     // Organization Management Tools
     registerListOrganizationsTool(server, graphqlClient);
+    registerGetOrganizationTool(server, graphqlClient);
+    registerGetOrganizationsWithActiveProposalsTool(server, graphqlClient);
 
     // For now, I'll add just the essential tools to test the HTTP functionality
     // The complete tool setup can be added later
