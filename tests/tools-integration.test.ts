@@ -1,0 +1,310 @@
+/**
+ * MCP Tools Integration Test Suite
+ * 
+ * Tests all 12 MCP tools with real Tally API data
+ * using the MCPStdioClient test harness
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { MCPStdioClient } from './helpers/mcp-stdio-client';
+
+describe('MCP Tools Integration Tests', () => {
+  let client: MCPStdioClient;
+
+  beforeAll(async () => {
+    client = new MCPStdioClient();
+    await client.start();
+    await client.initialize();
+  }, 30000);
+
+  afterAll(async () => {
+    if (client) {
+      await client.stop();
+    }
+  });
+
+  describe('Tool 1: get_server_info', () => {
+    it('should return server information', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_server_info',
+        arguments: {},
+      });
+
+      expect(response).toBeDefined();
+      expect(response.content).toBeInstanceOf(Array);
+      expect(response.content[0]).toHaveProperty('type', 'text');
+      
+      const data = JSON.parse(response.content[0].text);
+      expect(data).toMatchObject({
+        name: 'mcp-tally-api',
+        version: '1.1.0',
+        transport: 'stdio',
+        tally_api_url: 'https://api.tally.xyz/query',
+        api_key_configured: true,
+      });
+      expect(data.timestamp).toBeDefined();
+    });
+  });
+
+  describe('Tool 2: list_organizations', () => {
+    it('should list organizations with pagination', async () => {
+      const response = await client.request('tools/call', {
+        name: 'list_organizations',
+        arguments: {
+          pageSize: 5,
+          sortBy: 'name',
+        },
+      });
+
+      expect(response).toBeDefined();
+      const data = JSON.parse(response.content[0].text);
+      expect(data.organizations).toBeInstanceOf(Array);
+      expect(data.organizations.length).toBeLessThanOrEqual(5);
+      expect(data.pageInfo).toBeDefined();
+    });
+  });
+
+  describe('Tool 3: get_organization', () => {
+    it('should get Aave organization details', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_organization',
+        arguments: {
+          organizationSlug: 'aave',
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data).toMatchObject({
+        id: '2206072049829414624',
+        name: 'Aave',
+        slug: 'aave',
+        chainIds: ['eip155:1'],
+      });
+      expect(data.memberCount).toBeGreaterThan(100000);
+    });
+  });
+
+  describe('Tool 4: get_organizations_with_active_proposals', () => {
+    it('should list organizations with active proposals', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_organizations_with_active_proposals',
+        arguments: {
+          pageSize: 10,
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.organizations).toBeInstanceOf(Array);
+      
+      data.organizations.forEach((org: any) => {
+        expect(org.activeProposalCount).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('Tool 5: list_proposals', () => {
+    it('should list proposals for Arbitrum', async () => {
+      const response = await client.request('tools/call', {
+        name: 'list_proposals',
+        arguments: {
+          organizationId: '2206072050315953936', // Arbitrum ID
+          pageSize: 5,
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.proposals).toBeInstanceOf(Array);
+      expect(data.proposals.length).toBeLessThanOrEqual(5);
+      
+      if (data.proposals.length > 0) {
+        const proposal = data.proposals[0];
+        expect(proposal).toHaveProperty('id');
+        expect(proposal).toHaveProperty('title');
+        expect(proposal).toHaveProperty('status');
+        expect(proposal).toHaveProperty('votingStats');
+      }
+    });
+  });
+
+  describe('Tool 6: get_proposal', () => {
+    it('should get specific proposal details', async () => {
+      // First get a proposal ID
+      const listResponse = await client.request('tools/call', {
+        name: 'list_proposals',
+        arguments: {
+          organizationId: '2206072050315953936', // Arbitrum
+          pageSize: 1,
+        },
+      });
+
+      const listData = JSON.parse(listResponse.content[0].text);
+      
+      if (listData.proposals && listData.proposals.length > 0) {
+        const proposalId = listData.proposals[0].id;
+        
+        const response = await client.request('tools/call', {
+          name: 'get_proposal',
+          arguments: {
+            proposalId: proposalId,
+            organizationId: '2206072050315953936',
+          },
+        });
+
+        const data = JSON.parse(response.content[0].text);
+        expect(data.id).toBe(proposalId);
+        expect(data.title).toBeDefined();
+      }
+    });
+  });
+
+  describe('Tool 7: get_active_proposals', () => {
+    it('should get currently active proposals', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_active_proposals',
+        arguments: {
+          pageSize: 10,
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.proposals).toBeInstanceOf(Array);
+      
+      // All proposals should be active or extended
+      data.proposals.forEach((proposal: any) => {
+        expect(['active', 'extended']).toContain(proposal.status);
+      });
+    });
+  });
+
+  describe('Tool 8: get_user_profile', () => {
+    it('should get user profile for a known address', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_user_profile',
+        arguments: {
+          address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // vitalik.eth
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.user).toBeDefined();
+      expect(data.user.address).toBe('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
+      expect(data.daoParticipations).toBeInstanceOf(Array);
+    });
+  });
+
+  describe('Tool 9: get_delegate_statement', () => {
+    it('should handle delegate statement request', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_delegate_statement',
+        arguments: {
+          address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+          organizationId: '2206072049829414624', // Aave
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data).toBeDefined();
+      // Statement may or may not exist
+    });
+  });
+
+  describe('Tool 10: get_dao_participants', () => {
+    it('should get participants for a DAO', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_dao_participants',
+        arguments: {
+          organizationId: '2206072049829414624', // Aave
+          pageSize: 5,
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.participants).toBeInstanceOf(Array);
+      expect(data.participants.length).toBeLessThanOrEqual(5);
+      
+      if (data.participants.length > 0) {
+        const participant = data.participants[0];
+        expect(participant).toHaveProperty('address');
+        expect(participant).toHaveProperty('governanceTokens');
+      }
+    });
+  });
+
+  describe('Tool 11: get_delegates', () => {
+    it('should get delegates with voting power', async () => {
+      const response = await client.request('tools/call', {
+        name: 'get_delegates',
+        arguments: {
+          organizationId: '2206072049829414624', // Aave
+          pageSize: 5,
+          sortBy: 'votes',
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.delegates).toBeInstanceOf(Array);
+      expect(data.delegates.length).toBeLessThanOrEqual(5);
+      
+      if (data.delegates.length > 0) {
+        const delegate = data.delegates[0];
+        expect(delegate).toHaveProperty('account');
+        expect(delegate).toHaveProperty('votesCount');
+        expect(delegate.account).toHaveProperty('address');
+      }
+    });
+  });
+
+  describe('Tool 12: execute_graphql_query', () => {
+    it('should execute custom GraphQL query', async () => {
+      const query = `
+        query {
+          governances(first: 2) {
+            nodes {
+              id
+              name
+              slug
+            }
+          }
+        }
+      `;
+
+      const response = await client.request('tools/call', {
+        name: 'execute_graphql_query',
+        arguments: {
+          query: query,
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.data).toBeDefined();
+      expect(data.data.governances).toBeDefined();
+      expect(data.data.governances.nodes).toBeInstanceOf(Array);
+      expect(data.data.governances.nodes.length).toBe(2);
+    });
+
+    it('should handle GraphQL variables', async () => {
+      const query = `
+        query GetGovernance($slug: String!) {
+          governance(slug: $slug) {
+            id
+            name
+            slug
+          }
+        }
+      `;
+
+      const response = await client.request('tools/call', {
+        name: 'execute_graphql_query',
+        arguments: {
+          query: query,
+          variables: {
+            slug: 'aave',
+          },
+        },
+      });
+
+      const data = JSON.parse(response.content[0].text);
+      expect(data.data.governance.slug).toBe('aave');
+    });
+  });
+});
