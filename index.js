@@ -1,5 +1,11 @@
-// Root entrypoint for Vercel deployment
-// Redirects to the MCP API function
-import handler from './api/mcp.js';
-
-export default handler;
+// Simple entrypoint for Vercel Node.js deployment
+export default function handler(req, res) {
+  res.json({
+    name: 'MCP Tally API',
+    version: '1.2.0',
+    message: 'MCP server is running',
+    endpoints: {
+      mcp: '/api/mcp'
+    }
+  });
+}
