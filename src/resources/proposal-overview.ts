@@ -4,6 +4,8 @@
  * Provides human-readable markdown overviews of proposals via tally://org/{organizationId}/proposal/{proposalId}
  */
 
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import { TallyGraphQLClient } from '../graphql-client.js';
 import { getProposal } from '../proposal-tools.js';
 
@@ -209,4 +211,41 @@ function formatVotes(votes: number | string): string {
   } else {
     return num.toLocaleString();
   }
+}
+
+/**
+ * Register the proposal overview resource template with the MCP server
+ * 
+ * @param server - The McpServer instance to register the resource with
+ * @param graphqlClient - The TallyGraphQLClient instance for API access
+ */
+export function registerProposalOverviewResource(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+  server.resource(
+    'proposal-overview',
+    new ResourceTemplate('tally://org/{organizationId}/proposal/{proposalId}', { list: undefined }),
+    async (uri, params): Promise<ReadResourceResult> => {
+      if (!graphqlClient) {
+        throw new Error('Server not properly initialized');
+      }
+      
+      const organizationId = Array.isArray(params.organizationId) ? params.organizationId[0] : params.organizationId;
+      const proposalId = Array.isArray(params.proposalId) ? params.proposalId[0] : params.proposalId;
+      
+      if (!organizationId || !proposalId) {
+        throw new Error('Both organizationId and proposalId are required');
+      }
+      
+      const response = await getProposalOverview(graphqlClient, organizationId, proposalId);
+
+      return {
+        contents: [
+          {
+            uri: response.uri,
+            mimeType: response.mimeType,
+            text: response.text,
+          },
+        ],
+      };
+    }
+  );
 } 

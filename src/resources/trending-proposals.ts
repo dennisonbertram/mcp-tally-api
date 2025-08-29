@@ -4,6 +4,8 @@
  * Provides human-readable markdown overviews of active proposals across all DAOs via tally://trending/proposals
  */
 
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import { TallyGraphQLClient } from '../graphql-client.js';
 import { getActiveProposals } from '../proposal-tools.js';
 
@@ -214,4 +216,35 @@ function formatVotes(votes: number | string): string {
   } else {
     return num.toLocaleString();
   }
+}
+
+/**
+ * Register the trending proposals resource with the MCP server
+ * 
+ * @param server - The McpServer instance to register the resource with
+ * @param graphqlClient - The TallyGraphQLClient instance for API access
+ */
+export function registerTrendingProposalsResource(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+  server.resource(
+    'trending-proposals',
+    'tally://trending/proposals',
+    { mimeType: 'text/markdown' },
+    async (): Promise<ReadResourceResult> => {
+      if (!graphqlClient) {
+        throw new Error('Server not properly initialized');
+      }
+      
+      const response = await getTrendingProposalsOverview(graphqlClient);
+
+      return {
+        contents: [
+          {
+            uri: response.uri,
+            mimeType: response.mimeType,
+            text: response.text,
+          },
+        ],
+      };
+    }
+  );
 } 

@@ -4,6 +4,8 @@
  * Provides human-readable markdown overviews of DAOs via tally://org/{organizationId}
  */
 
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import { TallyGraphQLClient } from '../graphql-client.js';
 import { getOrganization } from '../organization-tools.js';
 
@@ -96,4 +98,40 @@ function generateOrganizationMarkdown(org: any): string {
   sections.push(`*Data from Tally API • Organization ID: ${org.id} • Slug: ${org.slug}*`);
   
   return sections.join('\n');
+}
+
+/**
+ * Register the organization overview resource template with the MCP server
+ * 
+ * @param server - The McpServer instance to register the resource with
+ * @param graphqlClient - The TallyGraphQLClient instance for API access
+ */
+export function registerOrganizationOverviewResource(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+  server.resource(
+    'organization-overview',
+    new ResourceTemplate('tally://org/{organizationId}', { list: undefined }),
+    async (uri, params): Promise<ReadResourceResult> => {
+      if (!graphqlClient) {
+        throw new Error('Server not properly initialized');
+      }
+      
+      const organizationId = Array.isArray(params.organizationId) ? params.organizationId[0] : params.organizationId;
+      
+      if (!organizationId) {
+        throw new Error('Organization ID parameter is required');
+      }
+      
+      const response = await getOrganizationOverview(graphqlClient, organizationId);
+
+      return {
+        contents: [
+          {
+            uri: response.uri,
+            mimeType: response.mimeType,
+            text: response.text,
+          },
+        ],
+      };
+    }
+  );
 } 
