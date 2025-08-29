@@ -27,6 +27,7 @@ import { registerGetDAOParticipantsTool } from './tools/get-dao-participants.js'
 import { registerGetDelegatesTool } from './tools/get-delegates.js';
 import { registerExecuteGraphQLQueryTool } from './tools/execute-graphql-query.js';
 import { registerDelegateLeaderboardTool } from './tools/delegate-leaderboard.js';
+import { registerVoterProfileTool } from './tools/voter-profile.js';
 import {
   listOrganizations,
   getOrganization,
@@ -120,6 +121,7 @@ class TallyMcpServer {
     // Advanced Query Tools
     registerExecuteGraphQLQueryTool(this.server, this.graphqlClient!);
     registerDelegateLeaderboardTool(this.server, this.graphqlClient!);
+    registerVoterProfileTool(this.server, this.graphqlClient!);
   }
 
   private setupResources() {
