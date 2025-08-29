@@ -18,6 +18,10 @@ import { registerGetServerInfoTool } from './tools/get-server-info.js';
 import { registerListOrganizationsTool } from './tools/list-organizations.js';
 import { registerGetOrganizationTool } from './tools/get-organization.js';
 import { registerGetOrganizationsWithActiveProposalsTool } from './tools/get-organizations-with-active-proposals.js';
+import { registerListProposalsTool } from './tools/list-proposals.js';
+import { registerGetProposalTool } from './tools/get-proposal.js';
+import { registerGetActiveProposalsTool } from './tools/get-active-proposals.js';
+import { registerGetUserProfileTool } from './tools/get-user-profile.js';
 import {
   listOrganizations,
   getOrganization,
@@ -102,318 +106,12 @@ class TallyMcpServer {
     registerGetOrganizationsWithActiveProposalsTool(this.server, this.graphqlClient!);
 
     // Proposal Operations Tools
-    this.server.tool(
-      'list_proposals',
-      'List proposals for a specific organization with pagination, filtering, and sorting',
-      {
-        organizationId: z.string().describe('Organization ID (required)'),
-        page: z.number().optional().describe('Page number (default: 1)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of proposals per page (max: 100, default: 20)'),
-        governorId: z
-          .string()
-          .optional()
-          .describe('Filter by governor contract ID'),
-        proposer: z.string().optional().describe('Filter by proposer address'),
-        sortOrder: z
-          .string()
-          .optional()
-          .describe('Sort order: asc or desc (default: desc)'),
-      },
-      async (args): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await listProposals(this.graphqlClient, {
-            organizationId: args.organizationId,
-            page: args.page,
-            pageSize: args.pageSize,
-            governorId: args.governorId,
-            proposer: args.proposer,
-            isDraft: false, // Always exclude drafts
-            includeArchived: false, // Always exclude archived drafts
-            sortOrder: args.sortOrder as any,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result.proposals.map((proposal) => ({
-              id: proposal.id,
-              onchainId: proposal.id, // Use id as onchainId if not available
-              status: proposal.status,
-              metadata: {
-                title: proposal.title,
-                description: proposal.description,
-              },
-              organization: proposal.organization || {
-                name: 'Unknown',
-                slug: 'unknown',
-              },
-              proposer: proposal.proposer,
-              votingStats: proposal.votingStats,
-              startTime: proposal.startTime,
-              endTime: proposal.endTime,
-            })),
-            totalCount: result.pagination.totalCount,
-            pageInfo: {
-              hasNextPage: result.pagination.hasNextPage,
-              hasPreviousPage: result.pagination.hasPreviousPage,
-              startCursor: undefined,
-              endCursor: undefined,
-            },
-            conversionReminder: "⚠️ IMPORTANT: All vote counts in votingStats (yesVotes, noVotes, abstainVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
-
-    this.server.tool(
-      'get_proposal',
-      'Get detailed information about a specific proposal',
-      {
-        organizationId: z
-          .string()
-          .optional()
-          .describe('Organization ID (use either this or organizationSlug)'),
-        organizationSlug: z
-          .string()
-          .optional()
-          .describe('Organization slug (use either this or organizationId)'),
-        proposalId: z.string().describe('Proposal ID (required)'),
-      },
-      async ({
-        organizationId,
-        organizationSlug,
-        proposalId,
-      }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getProposal(this.graphqlClient, {
-            organizationId,
-            organizationSlug,
-            proposalId,
-          });
-
-          if (!result) {
-            throw new Error('Proposal not found');
-          }
-
-          // Transform to expected structure
-          const response = {
-            id: result.id,
-            onchainId: result.id, // Use id as onchainId if not available
-            status: result.status,
-            metadata: {
-              title: result.title,
-              description: result.description,
-            },
-            organization: {
-              name: result.organization?.name || 'Unknown',
-              slug: result.organization?.slug || 'unknown',
-            },
-            proposer: result.proposer,
-            votingStats: result.votingStats,
-            startTime: result.startTime,
-            endTime: result.endTime,
-            executionDetails: result.executionDetails,
-            actions: result.actions,
-            executableCalls: result.executableCalls, // Include detailed executable calls
-            timelockOperations: result.timelockOperations, // Include timelock analysis
-            timelockSummary: result.timelockSummary, // Include timelock summary
-            tokenInfo: result.tokenInfo, // Include token information with conversion note
-            conversionReminder: "⚠️ IMPORTANT: All vote counts (yesVotes, noVotes, abstainVotes, totalVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
-
-    this.server.tool(
-      'get_active_proposals',
-      'Get votable proposals (active or extended status) for a specific organization OR from multiple organizations (limited). Returns proposals where users can currently vote. IMPORTANT: The Tally API does NOT support efficient cross-organizational queries without organizationId. When organizationId is NOT provided, this tool must query organizations individually, which may return incomplete results or empty responses. For reliable results, ALWAYS specify organizationId when possible.',
-      {
-        page: z.number().optional().describe('Page number (default: 1)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of proposals per page (max: 100, default: 20)'),
-        chainId: z.string().optional().describe('Filter by chain ID'),
-        organizationId: z
-          .string()
-          .optional()
-          .describe('Filter by organization ID - STRONGLY RECOMMENDED for reliable results. Without this, the query may return empty or incomplete results due to Tally API limitations.'),
-      },
-      async (args): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getActiveProposals(this.graphqlClient, {
-            page: args.page,
-            pageSize: args.pageSize,
-            chainId: args.chainId,
-            organizationId: args.organizationId,
-          });
-
-          // Transform to expected structure
-          const response = {
-            items: result.proposals,
-            totalCount: result.pagination.totalCount,
-            pageInfo: {
-              hasNextPage: result.pagination.hasNextPage,
-              hasPreviousPage: result.pagination.hasPreviousPage,
-              startCursor: undefined,
-              endCursor: undefined,
-            },
-            conversionReminder: "⚠️ IMPORTANT: All vote counts in proposal votingStats are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
-          };
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(response, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerListProposalsTool(this.server, this.graphqlClient!);
+    registerGetProposalTool(this.server, this.graphqlClient!);
+    registerGetActiveProposalsTool(this.server, this.graphqlClient!);
 
     // User and Delegation Query Tools
-    this.server.tool(
-      'get_user_profile',
-      'Get comprehensive user profile including user details and DAO participations',
-      {
-        address: z.string().describe('Ethereum address of the user (required)'),
-        pageSize: z
-          .number()
-          .optional()
-          .describe('Number of DAO participations per page (max: 100, default: 20)'),
-      },
-      async ({ address, pageSize }): Promise<CallToolResult> => {
-        try {
-          if (!this.graphqlClient) {
-            throw new Error('Server not properly initialized');
-          }
-          const result = await getUserProfile(this.graphqlClient, { address, pageSize });
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          // For validation errors and expected errors, throw them
-          if (
-            error instanceof Error &&
-            (error.message.includes('GraphQL errors') ||
-              error.message.includes('rate limit') ||
-              error.message.includes('Invalid'))
-          ) {
-            throw error;
-          }
-
-          // For unexpected errors, return error object
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      }
-    );
+    registerGetUserProfileTool(this.server, this.graphqlClient!);
 
     this.server.tool(
       'get_delegate_statement',
@@ -1130,8 +828,13 @@ class TallyMcpServer {
     registerGetOrganizationTool(server, graphqlClient);
     registerGetOrganizationsWithActiveProposalsTool(server, graphqlClient);
 
-    // For now, I'll add just the essential tools to test the HTTP functionality
-    // The complete tool setup can be added later
+    // Proposal Operations Tools
+    registerListProposalsTool(server, graphqlClient);
+    registerGetProposalTool(server, graphqlClient);
+    registerGetActiveProposalsTool(server, graphqlClient);
+
+    // User and Delegation Query Tools
+    registerGetUserProfileTool(server, graphqlClient);
 
     // Advanced Query Tool
     server.tool(
