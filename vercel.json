@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/mcp.js": {
+      "memory": 1024,
+      "maxDuration": 30,
+      "runtime": "nodejs22.x"
+    }
+  },
   "regions": ["iad1"],
   "env": {
     "ENABLE_SSE": "false",
