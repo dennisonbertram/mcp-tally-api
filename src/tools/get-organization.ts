@@ -25,7 +25,7 @@ import { getOrganization } from '../organization-tools.js';
 export function registerGetOrganizationTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_organization',
-    'Get detailed information about a specific organization by ID or slug',
+    'Get DAO details',
     {
       organizationId: z
         .string()
@@ -65,7 +65,6 @@ export function registerGetOrganizationTool(server: McpServer, graphqlClient: Ta
           github: result.github,
           timelocks: result.timelocks, // Include timelock information
           safes: result.safes, // Include safe addresses
-          conversionReminder: "⚠️ IMPORTANT: When analyzing proposals or votes for this organization, all vote counts and token amounts are in raw token units (Ethereum-style). Use tokenInfo.decimals to convert: human-readable amount = raw value ÷ 10^decimals.",
         };
 
         return {

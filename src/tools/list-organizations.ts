@@ -25,7 +25,7 @@ import { listOrganizations } from '../organization-tools.js';
 export function registerListOrganizationsTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'list_organizations',
-    'List organizations with pagination, filtering, and sorting options',
+    'Browse and discover DAOs',
     {
       page: z.number().optional().describe('Page number (default: 1)'),
       pageSize: z

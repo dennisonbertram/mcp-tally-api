@@ -4,28 +4,27 @@ import { z } from 'zod';
 import { TallyGraphQLClient } from '../graphql-client.js';
 
 /**
- * Tool for executing arbitrary GraphQL queries against the Tally API
+ * Advanced tool for executing custom GraphQL queries against the Tally API
  * 
- * This is an advanced tool that allows users to run custom GraphQL queries
- * directly against the Tally API. It's useful for:
+ * ADVANCED: Use other tools first - this is for complex custom queries only.
+ * Requires knowledge of the Tally GraphQL schema.
+ * 
+ * Use cases:
  * - Complex queries not covered by other tools
- * - Debugging and exploration of the API
  * - Custom data analysis and reporting
- * - Schema introspection queries
- * 
- * Users should be familiar with the Tally GraphQL schema to use this tool effectively.
+ * - Schema introspection
  */
 
 /**
- * Registers the execute_graphql_query tool with an MCP server instance
+ * Registers the custom_query tool with an MCP server instance
  * 
  * @param server - The MCP server instance to register the tool with
  * @param graphqlClient - The Tally GraphQL client for making API calls
  */
-export function registerExecuteGraphQLQueryTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
+export function registerCustomQueryTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
-    'execute_graphql_query',
-    'Execute an arbitrary GraphQL query against the Tally API',
+    'custom_query',
+    '[Advanced] Custom GraphQL query',
     {
       query: z.string().describe('GraphQL query string'),
       variables: z.record(z.any()).optional().describe('Optional variables for the GraphQL query'),

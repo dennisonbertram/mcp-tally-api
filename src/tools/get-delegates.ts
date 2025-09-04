@@ -26,7 +26,7 @@ import { getDelegates } from '../user-tools.js';
 export function registerGetDelegatesTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_delegates',
-    'Get enhanced delegate information for a specific organization including voting power, account details, statements, and organization info',
+    'List DAO delegates',
     {
       organizationId: z
         .string()
@@ -73,7 +73,6 @@ export function registerGetDelegatesTool(server: McpServer, graphqlClient: Tally
             startCursor: result?.pageInfo.startCursor,
             endCursor: result?.pageInfo.endCursor,
           },
-          conversionReminder: "⚠️ IMPORTANT: All vote counts and voting power values (votesCount, delegated amounts) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
         };
 
         return {

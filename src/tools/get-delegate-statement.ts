@@ -21,7 +21,7 @@ import { getDelegateStatement } from '../user-tools.js';
 export function registerGetDelegateStatementTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_delegate_statement',
-    'Get delegate statement for a specific user and organization',
+    'Get delegate platform statement',
     {
       address: z.string().describe('Ethereum address of the delegate (required)'),
       organizationId: z.string().describe('Organization ID (required)'),

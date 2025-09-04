@@ -25,7 +25,7 @@ import { registerGetUserProfileTool } from './tools/get-user-profile.js';
 import { registerGetDelegateStatementTool } from './tools/get-delegate-statement.js';
 import { registerGetDAOParticipantsTool } from './tools/get-dao-participants.js';
 import { registerGetDelegatesTool } from './tools/get-delegates.js';
-import { registerExecuteGraphQLQueryTool } from './tools/execute-graphql-query.js';
+import { registerCustomQueryTool } from './tools/custom-query.js';
 import { registerDelegateLeaderboardTool } from './tools/delegate-leaderboard.js';
 import { registerVoterProfileTool } from './tools/voter-profile.js';
 import { registerRecentVotesTool } from './tools/recent-votes.js';
@@ -125,7 +125,7 @@ class TallyMcpServer {
     registerGetDelegatesTool(this.server, this.graphqlClient!);
 
     // Advanced Query Tools
-    registerExecuteGraphQLQueryTool(this.server, this.graphqlClient!);
+    registerCustomQueryTool(this.server, this.graphqlClient!);
     registerDelegateLeaderboardTool(this.server, this.graphqlClient!);
     registerVoterProfileTool(this.server, this.graphqlClient!);
     registerRecentVotesTool(this.server, this.graphqlClient!);
@@ -329,7 +329,7 @@ class TallyMcpServer {
     registerGetDelegatesTool(server, graphqlClient);
 
     // Advanced Query Tool
-    registerExecuteGraphQLQueryTool(server, graphqlClient);
+    registerCustomQueryTool(server, graphqlClient);
   }
 
   private setupAllResources(server: McpServer, graphqlClient: TallyGraphQLClient) {

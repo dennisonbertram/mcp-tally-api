@@ -21,7 +21,7 @@ import { getDAOParticipants } from '../user-tools.js';
 export function registerGetDAOParticipantsTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_dao_participants',
-    'Get participants of a specific DAO with pagination, filtering, and sorting',
+    'List DAO participants',
     {
       organizationId: z
         .string()
@@ -54,7 +54,6 @@ export function registerGetDAOParticipantsTool(server: McpServer, graphqlClient:
             startCursor: result?.pageInfo.startCursor,
             endCursor: result?.pageInfo.endCursor,
           },
-          conversionReminder: result?.conversionReminder || "⚠️ IMPORTANT: All votesCount values are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals using the tokenInfo.decimals field, or use 18 decimals as default.",
         };
 
         return {

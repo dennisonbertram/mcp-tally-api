@@ -24,7 +24,7 @@ import { getUserProfile } from '../user-tools.js';
 export function registerGetUserProfileTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_user_profile',
-    'Get comprehensive user profile including user details and DAO participations',
+    'Get user profile and DAO activity',
     {
       address: z.string().describe('Ethereum address of the user (required)'),
       pageSize: z

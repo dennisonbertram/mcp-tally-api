@@ -23,7 +23,7 @@ import { getOrganizationsWithActiveProposals } from '../organization-tools.js';
 export function registerGetOrganizationsWithActiveProposalsTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_organizations_with_active_proposals',
-    'Get organizations that have active proposals with filtering options',
+    'Find DAOs with active proposals',
     {
       minActiveProposals: z
         .number()

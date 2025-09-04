@@ -26,7 +26,7 @@ import { listProposals } from '../proposal-tools.js';
 export function registerListProposalsTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'list_proposals',
-    'List proposals for a specific organization with pagination, filtering, and sorting',
+    'List DAO proposals',
     {
       organizationId: z.string().describe('Organization ID (required)'),
       page: z.number().optional().describe('Page number (default: 1)'),
@@ -87,7 +87,6 @@ export function registerListProposalsTool(server: McpServer, graphqlClient: Tall
             startCursor: undefined,
             endCursor: undefined,
           },
-          conversionReminder: "⚠️ IMPORTANT: All vote counts in votingStats (yesVotes, noVotes, abstainVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
         };
 
         return {

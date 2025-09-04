@@ -27,7 +27,7 @@ import { getActiveProposals } from '../proposal-tools.js';
 export function registerGetActiveProposalsTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_active_proposals',
-    'Get votable proposals (active or extended status) for a specific organization OR from multiple organizations (limited). Returns proposals where users can currently vote. IMPORTANT: The Tally API does NOT support efficient cross-organizational queries without organizationId. When organizationId is NOT provided, this tool must query organizations individually, which may return incomplete results or empty responses. For reliable results, ALWAYS specify organizationId when possible.',
+    'Get active votable proposals',
     {
       page: z.number().optional().describe('Page number (default: 1)'),
       pageSize: z
@@ -38,7 +38,7 @@ export function registerGetActiveProposalsTool(server: McpServer, graphqlClient:
       organizationId: z
         .string()
         .optional()
-        .describe('Filter by organization ID - STRONGLY RECOMMENDED for reliable results. Without this, the query may return empty or incomplete results due to Tally API limitations.'),
+        .describe('Filter by organization ID (recommended for best results)'),
     },
     async (args): Promise<CallToolResult> => {
       try {
@@ -62,7 +62,6 @@ export function registerGetActiveProposalsTool(server: McpServer, graphqlClient:
             startCursor: undefined,
             endCursor: undefined,
           },
-          conversionReminder: "⚠️ IMPORTANT: All vote counts in proposal votingStats are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
         };
 
         return {

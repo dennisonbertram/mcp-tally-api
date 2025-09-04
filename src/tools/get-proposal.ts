@@ -26,7 +26,7 @@ import { getProposal } from '../proposal-tools.js';
 export function registerGetProposalTool(server: McpServer, graphqlClient: TallyGraphQLClient): void {
   server.tool(
     'get_proposal',
-    'Get detailed information about a specific proposal',
+    'Get proposal details',
     {
       organizationId: z
         .string()
@@ -80,7 +80,6 @@ export function registerGetProposalTool(server: McpServer, graphqlClient: TallyG
           timelockOperations: result.timelockOperations, // Include timelock analysis
           timelockSummary: result.timelockSummary, // Include timelock summary
           tokenInfo: result.tokenInfo, // Include token information with conversion note
-          conversionReminder: "⚠️ IMPORTANT: All vote counts (yesVotes, noVotes, abstainVotes, totalVotes) are in raw token units (Ethereum-style). To convert to human-readable amounts, divide by 10^decimals where decimals is typically 18 for most governance tokens.",
         };
 
         return {
