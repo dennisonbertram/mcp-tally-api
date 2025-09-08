@@ -34,6 +34,7 @@ import { registerDelegationStatusTool } from './tools/delegation-status.js';
 import { registerDAOVotingStatsTool } from './tools/dao-voting-stats.js';
 import { registerProposalTimelineTool } from './tools/proposal-timeline.js';
 import { registerVoteHistoryTool } from './tools/vote-history.js';
+import { registerGetProposalVotersTool } from './tools/get-proposal-voters.js';
 import {
   listOrganizations,
   getOrganization,
@@ -117,6 +118,7 @@ class TallyMcpServer {
     registerListProposalsTool(this.server, this.graphqlClient!);
     registerGetProposalTool(this.server, this.graphqlClient!);
     registerGetActiveProposalsTool(this.server, this.graphqlClient!);
+    registerGetProposalVotersTool(this.server, this.graphqlClient!);
 
     // User and Delegation Query Tools
     registerGetUserProfileTool(this.server, this.graphqlClient!);
