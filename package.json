@@ -1,6 +1,6 @@
 {
   "name": "mcp-tally-api",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Model Context Protocol server for Tally blockchain governance API - Vercel Serverless Functions",
   "module": "index.ts",
   "main": "dist/index.js",
